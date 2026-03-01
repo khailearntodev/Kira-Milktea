@@ -4,15 +4,17 @@ import { menuService } from '../services/menuService.js';
 import { cartService } from '../services/cartService.js';
 import { Product } from '../types/index.js';
 
-// check giờ làm việc
+// check giờ làm việc (UTC+7)
 const isWithinOperatingHours = (): boolean => {
   const now = new Date();
+  const vietnamTimeStr = now.toLocaleString("en-US", { timeZone: "Asia/Ho_Chi_Minh" });
+  const vietnamTime = new Date(vietnamTimeStr);
   
   const [openHour, openMinute] = config.openHour.split(':').map(Number);
   const [closeHour, closeMinute] = config.closeHour.split(':').map(Number);
   
-  const currentHour = now.getHours();
-  const currentMinute = now.getMinutes();
+  const currentHour = vietnamTime.getHours();
+  const currentMinute = vietnamTime.getMinutes();
   
   const currentTimeVal = currentHour * 60 + currentMinute;
   const openTimeVal = openHour * 60 + openMinute;
@@ -73,10 +75,8 @@ export const handleClear = async (ctx: Context) => {
 };
 
 export const handleOutOfStock = async (ctx: Context) => {
-  // Only owner can use this
   if (String(ctx.from?.id) !== config.ownerId) return;
 
-  // Expected format: /hethang ITEM_ID
   if (!ctx.message || !('text' in ctx.message) || !ctx.message.text.startsWith('/hethang')) return;
   
   const args = ctx.message.text.split(' ');
@@ -95,10 +95,8 @@ export const handleOutOfStock = async (ctx: Context) => {
 };
 
 export const handleInStock = async (ctx: Context) => {
-  // Only owner can use this
   if (String(ctx.from?.id) !== config.ownerId) return;
 
-  // Expected format: /conhang ITEM_ID
   if (!ctx.message || !('text' in ctx.message) || !ctx.message.text.startsWith('/conhang')) return;
   
   const args = ctx.message.text.split(' ');

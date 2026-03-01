@@ -5,18 +5,13 @@ import { orderService } from '../services/orderService.js';
 import config from '../config/env.js';
 import { SessionState } from '../types/index.js';
 
-/* --- MENU BROWSING HANDLERS --- */
-
 export const handleBackToMenu = async (ctx: Context) => {
   try {
     const products = await menuService.loadMenu();
-    // Unique categories
     const categories = Array.from(new Set(products.map(p => p.category)));
     
-    // Create buttons for each category
     const buttons = categories.map(cat => [Markup.button.callback(cat, 'CATEGORY_' + cat)]);
     
-    // Add View Cart button
     buttons.push([Markup.button.callback('🛒 Xem Giỏ Hàng', 'VIEW_CART')]);
 
     try {
@@ -98,8 +93,6 @@ export const handleSizeSelection = async (ctx: Context) => {
   if (!ctx.from || !ctx.callbackQuery || !('data' in ctx.callbackQuery)) return;
   
   const callbackData = (ctx.callbackQuery as any).data;
-  // Format: SELECT_SIZE_ID_SIZE
-  // Improved parsing to handle IDs with underscores
   const prefix = 'SELECT_SIZE_'; 
   const dataWithoutPrefix = callbackData.substring(prefix.length);
   const lastUnderscoreIndex = dataWithoutPrefix.lastIndexOf('_');
@@ -127,7 +120,6 @@ export const handleSizeSelection = async (ctx: Context) => {
   }
 };
 
-/* --- CART & ORDER HANDLERS --- */
 
 export const handleViewCart = async (ctx: Context) => {
   if (!ctx.from) return;
@@ -138,10 +130,8 @@ export const handleViewCart = async (ctx: Context) => {
     const receipt = orderService.formatOrderReceipt(session);
 
     if (session.cart.length === 0) {
-        // Empty cart handling
         const buttons = [[Markup.button.callback('📜 Xem Thực Đơn', 'BACK_TO_MENU')]];
         try {
-             // Try to edit if possible
              if (ctx.callbackQuery) {
                 await ctx.editMessageText(receipt, Markup.inlineKeyboard(buttons));
              } else {
