@@ -83,7 +83,6 @@ class MenuService {
   }
 
   async markOutOfStock(productId: string): Promise<boolean> {
-     // Verify product exists
      if (!this.menuCache) await this.loadCsvMenu();
      const exists = this.menuCache?.some(p => p.item_id === productId);
      if (!exists) return false;
