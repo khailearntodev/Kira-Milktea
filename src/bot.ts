@@ -18,7 +18,9 @@ bot.catch((err: any, ctx) => {
 bot.command('start', commandHandler.handleStart);
 bot.command('menu', commandHandler.handleMenu);
 bot.command('clear', commandHandler.handleClear);
-bot.command('help', commandHandler.handleStart); 
+bot.command('help', commandHandler.handleStart);
+bot.command('hethang', commandHandler.handleOutOfStock);
+bot.command('conhang', commandHandler.handleInStock);
 
 // === ACTION HANDLERS (Callback Queries) ===
 bot.action('VIEW_MENU', commandHandler.handleMenu);
