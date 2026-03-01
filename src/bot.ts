@@ -1,4 +1,5 @@
 import { Telegraf } from 'telegraf';
+import http from 'http'; 
 import config from './config/env.js';
 import * as commandHandler from './handlers/commandHandler.js';
 import * as actionHandler from './handlers/actionHandler.js';
@@ -51,3 +52,14 @@ bot.launch().then(() => {
 // === GRACEFUL SHUTDOWN ===
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
+
+if (config.nodeEnv === 'production') {
+  const PORT = process.env.PORT || 3000;
+  http.createServer((req, res) => {
+    res.writeHead(200, { 'Content-Type': 'text/plain' });
+    res.write('Kira Milktea Bot is alive!');
+    res.end();
+  }).listen(PORT, () => {
+    console.log(`Server is listening on port ${PORT}`);
+  });
+}
