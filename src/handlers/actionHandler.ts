@@ -1,7 +1,157 @@
 import { Context, Markup } from 'telegraf';
 import { menuService } from '../services/menuService.js';
 import { cartService } from '../services/cartService.js';
+import { orderService } from '../services/orderService.js';
+import config from '../config/env.js';
 import { CartItem, Product, SessionState } from '../types/index.js';
+
+/**
+ * xem giỏ hàng hiện tại, chi tiết và nút đặt hàng
+ */
+export const handleViewCart = async (ctx: Context) => {
+  if (!ctx.from) return;
+  const userId = ctx.from.id;
+
+  try {
+    const session = await cartService.getSession(userId);
+    const receipt = orderService.formatOrderReceipt(session);
+
+    if (session.cart.length === 0) {
+      await ctx.reply(receipt, Markup.inlineKeyboard([
+        Markup.button.callback('📜 Xem Thực Đơn', 'BACK_TO_MENU')
+      ]));
+      return;
+    }
+
+    await cartService.updateState(userId, SessionState.CONFIRMING);
+
+    const buttons = [
+      [Markup.button.callback('✅ XÁC NHẬN ĐẶT HÀNG', 'CONFIRM_ORDER')],
+      [
+        Markup.button.callback('✏️ Xóa món', 'EDIT_CART'),
+        Markup.button.callback('🗑️ Xóa hết', 'CLEAR_CART')
+      ],
+      [Markup.button.callback('📜 Đặt thêm món', 'BACK_TO_MENU')]
+    ];
+
+    await ctx.reply(receipt, {
+      parse_mode: 'Markdown',
+      ...Markup.inlineKeyboard(buttons)
+    });
+
+  } catch (error) {
+    console.error('Error viewing cart:', error);
+    await ctx.reply('Có lỗi khi xem giỏ hàng.');
+  }
+};
+
+/**
+ * xác nhận đặt hàng: gửi đơn cho chủ quán, xóa cart và cảm ơn khách
+ */
+export const handleConfirmOrder = async (ctx: Context) => {
+  if (!ctx.from) return;
+  const userId = ctx.from.id;
+  
+  try {
+    const session = await cartService.getSession(userId);
+
+    if (session.cart.length === 0) {
+      return ctx.reply('Giỏ hàng trống. Vui lòng chọn món trước.');
+    }
+
+    const customerName = `${ctx.from.first_name} ${ctx.from.last_name || ''}`.trim();
+    const orderMessage = orderService.formatOrderToOwner(customerName, ctx.from.username, session);
+
+    if (config.ownerId) {
+      try {
+        await ctx.telegram.sendMessage(config.ownerId, orderMessage, { parse_mode: 'Markdown' });
+      } catch (err) {
+        console.error('Failed to send message to owner:', err);
+      }
+    } else {
+      console.warn('OWNER_ID not set, order notification skipped.');
+    }
+
+    await cartService.clearCart(userId);
+
+    await ctx.reply(
+      `🎉 *ĐẶT HÀNG THÀNH CÔNG!*\n\nCảm ơn ${customerName} đã ủng hộ Kira Milktea.\nChúng mình đang làm món và sẽ giao ngay cho bạn nhé! ❤️`,
+      { 
+        parse_mode: 'Markdown',
+        ...Markup.inlineKeyboard([
+          Markup.button.callback('📜 Đặt đơn mới', 'BACK_TO_MENU')
+        ]) 
+      }
+    );
+
+  } catch (error) {
+    console.error('Error confirming order:', error);
+    await ctx.reply('Có lỗi xảy ra khi chốt đơn. Vui lòng thử lại.');
+  }
+};
+
+/**
+ * xử lý khi user chọn option "Xóa món" trong giỏ hàng: hiện danh sách món để xóa từng món hoặc xóa hết
+ */
+export const handleEditCart = async (ctx: Context) => {
+  if (!ctx.from) return;
+  const userId = ctx.from.id;
+
+  try {
+    const session = await cartService.getSession(userId);
+    if (session.cart.length === 0) return ctx.reply('Giỏ hàng trống.');
+
+    const buttons = session.cart.map((item, index) => [
+      Markup.button.callback(
+        `❌ Xóa: ${item.product.name} (${item.size})`, 
+        `REMOVE_ITEM_${index}`
+      )
+    ]);
+    
+    buttons.push([Markup.button.callback('⬅️ Quay lại Giỏ hàng', 'VIEW_CART')]);
+
+    await ctx.editMessageText(
+      'Chọn món bạn muốn xóa khỏi giỏ hàng:',
+      Markup.inlineKeyboard(buttons)
+    );
+  } catch (error) {
+    console.error('Error editing cart:', error);
+  }
+};
+
+/**
+ * xử lý xóa món
+ */
+export const handleRemoveItem = async (ctx: Context) => {
+  if (!ctx.callbackQuery || !ctx.from || !('data' in ctx.callbackQuery)) return;
+  
+  const callbackData = (ctx.callbackQuery as any).data;
+  const index = parseInt(callbackData.replace('REMOVE_ITEM_', ''));
+  const userId = ctx.from.id;
+
+  try {
+    await cartService.removeFromCart(userId, index);
+    await ctx.answerCbQuery('Đã xóa món!');
+
+    await handleViewCart(ctx);
+  } catch (error) {
+    console.error('Error removing item:', error);
+  }
+};
+
+/**
+ * xóa hết cart khi user chọn "Xóa hết" trong giỏ hàng
+ */
+export const handleClearCartAction = async (ctx: Context) => {
+  if (!ctx.from) return;
+  try {
+    await cartService.clearCart(ctx.from.id);
+    await ctx.answerCbQuery('Đã xóa sạch giỏ hàng!');
+    await handleBackToMenu(ctx);
+  } catch (error) {
+    console.error('Error clearing cart action:', error);
+  }
+};
 
 /**
  * xử lý khi user chọn 1 category, vd: "Trà Sữa" -> show category đó
