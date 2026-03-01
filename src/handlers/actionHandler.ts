@@ -36,16 +36,16 @@ export const handleCategorySelection = async (ctx: Context) => {
   const category = callbackData.replace('CATEGORY_', '');
     
   try {
-    const allProducts = await menuService.loadMenu();
-    const productsInCategory = allProducts.filter(p => p.category === category);
+    const allProducts = await menuService.loadMenu(true);
+    const productsInCategory = allProducts.filter(p => p.category === category && p.available);
     
     if (productsInCategory.length === 0) {
-      await ctx.answerCbQuery('Danh mục này hiện không có món nào/đã hết hàng.');
+      await ctx.answerCbQuery('Danh mục này hiện không có món nào hoặc đã hết hàng.');
       return;
     }
 
     const buttons = productsInCategory.map(p => [
-      Markup.button.callback(p.name + ' - ' + p.price_m + 'k', 'PRODUCT_' + p.item_id)
+      Markup.button.callback(p.name + ' - ' + p.price_m.toLocaleString('vi-VN') + 'đ', 'PRODUCT_' + p.item_id)
     ]);
     buttons.push([Markup.button.callback('🔙 Quay lại Menu', 'BACK_TO_MENU')]);
 
@@ -78,8 +78,8 @@ export const handleProductSelection = async (ctx: Context) => {
     
     const buttons = [
       [
-        Markup.button.callback('Size M (' + product.price_m + 'k)', 'SELECT_SIZE_' + productId + '_M'),
-        Markup.button.callback('Size L (' + product.price_l + 'k)', 'SELECT_SIZE_' + productId + '_L')
+        Markup.button.callback('Size M (' + product.price_m.toLocaleString('vi-VN') + 'đ)', 'SELECT_SIZE_' + productId + '_M'),
+        Markup.button.callback('Size L (' + product.price_l.toLocaleString('vi-VN') + 'đ)', 'SELECT_SIZE_' + productId + '_L')
       ],
       [Markup.button.callback('🔙 Quay lại', 'CATEGORY_' + product.category)]
     ];

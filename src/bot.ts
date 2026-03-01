@@ -10,7 +10,7 @@ const bot = new Telegraf(config.botToken);
 // === GLOBAL ERROR HANDLING ===
 bot.catch((err: any, ctx) => {
   console.error('Ooops, encountered an error for ' + ctx.updateType, err);
-  ctx.reply('�� c� l?i x?y ra, vui l�ng th? l?i sau.').catch(e => console.error('Failed to reply error', e));
+  ctx.reply('Có lỗi xảy ra, vui lòng thử lại sau.').catch(e => console.error('Failed to reply error', e));
 });
 
 // === COMMAND HANDLERS ===
@@ -27,20 +27,15 @@ bot.action('CONFIRM_ORDER', actionHandler.handleConfirmOrder);
 bot.action('EDIT_CART', actionHandler.handleEditCart);
 bot.action('CLEAR_CART', actionHandler.handleClearCartAction);
 
-// Remove Item: REMOVE_ITEM_0, REMOVE_ITEM_1...
 bot.action(/^REMOVE_ITEM_\d+$/, actionHandler.handleRemoveItem);
 
-// Select Size: SELECT_SIZE_TS01_M
 bot.action(/^SELECT_SIZE_.+$/, actionHandler.handleSizeSelection);
 
-// Select Product: PRODUCT_TS01
 bot.action(/^PRODUCT_.+$/, actionHandler.handleProductSelection);
 
-// Select Category: CATEGORY_Tr� S?a
 bot.action(/^CATEGORY_.+$/, actionHandler.handleCategorySelection);
 
 
-// === MESSAGE HANDLER (For Quantity Input) ===
 bot.on('text', messageHandler.handleMessage);
 
 // === STARTUP ===

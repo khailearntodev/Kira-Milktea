@@ -7,17 +7,28 @@ class MenuService {
   private menuCache: Product[] | null = null;
   private readonly csvPath = path.join(process.cwd(), 'src', 'data', 'Menu.csv');
 
-  async loadMenu(): Promise<Product[]> {
-    if (this.menuCache) {
+  async loadMenu(forceReload = false): Promise<Product[]> {
+    if (this.menuCache && !forceReload) {
       return this.menuCache;
+    }
+
+    if (forceReload) {
+        this.menuCache = null;
     }
 
     return new Promise((resolve, reject) => {
       const results: Product[] = [];
 
+      if (!fs.existsSync(this.csvPath)) {
+          console.error('CSV File not found at:', this.csvPath);
+          return resolve([]);
+      }
+
       fs.createReadStream(this.csvPath)
         .pipe(csv())
         .on('data', (data: any) => {
+          if (!data.item_id) return; 
+
           const product: Product = {
             category: data.category,
             item_id: data.item_id,
@@ -25,16 +36,14 @@ class MenuService {
             description: data.description,
             price_m: parseInt(data.price_m),
             price_l: parseInt(data.price_l),
-            available: data.available.toLowerCase() === 'true'
+            available: (data.available || '').trim().toLowerCase() === 'true'
           };
-
-          if (product.available) {
-            results.push(product);
-          }
+          
+          results.push(product);
         })
         .on('end', () => {
           this.menuCache = results;
-          console.log(`Menu loaded: ${results.length} items.`);
+          console.log(`Menu loaded: ${results.length} items from ${this.csvPath}`);
           resolve(results);
         })
         .on('error', (error) => {

@@ -5,6 +5,8 @@ services:
     restart: unless-stopped
     env_file:
       - .env
+    volumes:
+      - ./src/data:/app/src/data
     depends_on:
       - redis_db
     environment:
