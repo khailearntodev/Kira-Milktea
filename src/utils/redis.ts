@@ -50,4 +50,42 @@ export const del = async (key: string): Promise<void> => {
   }
 };
 
+// Set Operations
+export const sAdd = async (key: string, value: string): Promise<void> => {
+  try {
+    await client.sAdd(key, value);
+  } catch (error) {
+    console.error(`Error adding to set ${key}:`, error);
+    throw error;
+  }
+};
+
+export const sRem = async (key: string, value: string): Promise<void> => {
+  try {
+    await client.sRem(key, value);
+  } catch (error) {
+    console.error(`Error removing from set ${key}:`, error);
+    throw error;
+  }
+};
+
+export const sIsMember = async (key: string, value: string): Promise<boolean> => {
+  try {
+    const result = await client.sIsMember(key, value);
+    return Boolean(result);
+  } catch (error) {
+    console.error(`Error checking set member ${key}:`, error);
+    return false;
+  }
+};
+
+export const sMembers = async (key: string): Promise<string[]> => {
+  try {
+    return await client.sMembers(key);
+  } catch (error) {
+    console.error(`Error getting set members ${key}:`, error);
+    return [];
+  }
+};
+
 export default client;

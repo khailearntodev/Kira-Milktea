@@ -43,8 +43,13 @@ export const handleMenu = async (ctx: Context) => {
 
   try {
     const products = await menuService.loadMenu();
-    const categories = Array.from(new Set(products.map((p: Product) => p.category)));
+    const categories = Array.from(new Set(products.filter((p: Product) => p.available).map((p: Product) => p.category)));
     
+    if (categories.length === 0) {
+      await ctx.reply('Hiện tại quán đang tạm hết món hoặc chưa có menu. Vui lòng quay lại sau!');
+      return;
+    }
+
     const buttons = categories.map(cat => [Markup.button.callback(cat, `CATEGORY_${cat}`)]);
     buttons.push([Markup.button.callback('🛒 Xem Giỏ Hàng', 'VIEW_CART')]);
 
@@ -66,3 +71,43 @@ export const handleClear = async (ctx: Context) => {
     await ctx.reply('Có lỗi xảy ra khi xóa giỏ hàng.');
   }
 };
+
+export const handleOutOfStock = async (ctx: Context) => {
+  // Only owner can use this
+  if (String(ctx.from?.id) !== config.ownerId) return;
+
+  // Expected format: /hethang ITEM_ID
+  if (!ctx.message || !('text' in ctx.message) || !ctx.message.text.startsWith('/hethang')) return;
+  
+  const args = ctx.message.text.split(' ');
+  if (args.length < 2) {
+    return ctx.reply('⚠️ Vui lòng nhập mã món. Ví dụ: /hethang TS01');
+  }
+
+  const itemId = args[1].trim();
+  const success = await menuService.markOutOfStock(itemId);
+  
+  if (success) {
+    await ctx.reply(`✅ Đã đánh dấu món ${itemId} là HẾT HÀNG.`);
+  } else {
+    await ctx.reply(`⚠️ Không tìm thấy món có mã ${itemId}.`);
+  }
+};
+
+export const handleInStock = async (ctx: Context) => {
+  // Only owner can use this
+  if (String(ctx.from?.id) !== config.ownerId) return;
+
+  // Expected format: /conhang ITEM_ID
+  if (!ctx.message || !('text' in ctx.message) || !ctx.message.text.startsWith('/conhang')) return;
+  
+  const args = ctx.message.text.split(' ');
+  if (args.length < 2) {
+    return ctx.reply('⚠️ Vui lòng nhập mã món. Ví dụ: /conhang TS01');
+  }
+
+  const itemId = args[1].trim();
+  await menuService.markInStock(itemId);
+  await ctx.reply(`✅ Đã đánh dấu món ${itemId} ĐANG BÁN trở lại.`);
+};
+
