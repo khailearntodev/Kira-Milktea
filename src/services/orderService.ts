@@ -41,7 +41,8 @@ export class OrderService {
    */
   formatOrderToOwner(customerName: string, username: string | undefined, session: UserSession): string {
     const now = new Date();
-    const timeString = now.toLocaleString('vi-VN');
+    const vietnamTime = new Date(now.getTime() + (7 * 60 * 60 * 1000));
+    const timeString = vietnamTime.toLocaleString('vi-VN', { timeZone: 'UTC' });
     const userLink = username ? `@${username}` : "Không có username";
 
     let message = `🔔 *CÓ ĐƠN HÀNG MỚI!* 🔔\n`;
