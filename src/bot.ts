@@ -1,12 +1,58 @@
 import { Telegraf } from 'telegraf';
 import config from './config/env.js';
-
+import * as commandHandler from './handlers/commandHandler.js';
+import * as actionHandler from './handlers/actionHandler.js';
+import * as messageHandler from './handlers/messageHandler.js';
+import { menuService } from './services/menuService.js';
 
 const bot = new Telegraf(config.botToken);
 
-bot.start((ctx) => ctx.reply('Bot đã sẵn sàng nhận đơn trà sữa!'));
+// === GLOBAL ERROR HANDLING ===
+bot.catch((err: any, ctx) => {
+  console.error('Ooops, encountered an error for ' + ctx.updateType, err);
+  ctx.reply('�� c� l?i x?y ra, vui l�ng th? l?i sau.').catch(e => console.error('Failed to reply error', e));
+});
 
+// === COMMAND HANDLERS ===
+bot.command('start', commandHandler.handleStart);
+bot.command('menu', commandHandler.handleMenu);
+bot.command('clear', commandHandler.handleClear);
+bot.command('help', commandHandler.handleStart); 
+
+// === ACTION HANDLERS (Callback Queries) ===
+bot.action('VIEW_MENU', commandHandler.handleMenu);
+bot.action('BACK_TO_MENU', actionHandler.handleBackToMenu);
+bot.action('VIEW_CART', actionHandler.handleViewCart);
+bot.action('CONFIRM_ORDER', actionHandler.handleConfirmOrder);
+bot.action('EDIT_CART', actionHandler.handleEditCart);
+bot.action('CLEAR_CART', actionHandler.handleClearCartAction);
+
+// Remove Item: REMOVE_ITEM_0, REMOVE_ITEM_1...
+bot.action(/^REMOVE_ITEM_\d+$/, actionHandler.handleRemoveItem);
+
+// Select Size: SELECT_SIZE_TS01_M
+bot.action(/^SELECT_SIZE_.+$/, actionHandler.handleSizeSelection);
+
+// Select Product: PRODUCT_TS01
+bot.action(/^PRODUCT_.+$/, actionHandler.handleProductSelection);
+
+// Select Category: CATEGORY_Tr� S?a
+bot.action(/^CATEGORY_.+$/, actionHandler.handleCategorySelection);
+
+
+// === MESSAGE HANDLER (For Quantity Input) ===
+bot.on('text', messageHandler.handleMessage);
+
+// === STARTUP ===
+menuService.loadMenu()
+  .then(() => console.log('? Menu loaded successfully'))
+  .catch(err => console.error('? Failed to load menu on startup:', err));
+
+bot.launch().then(() => {
+  console.log('?? Bot is running in ' + config.nodeEnv + ' mode!');
+  console.log('?? Operating Hours: ' + config.openHour + ' - ' + config.closeHour);
+});
+
+// === GRACEFUL SHUTDOWN ===
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
-
-bot.launch();
