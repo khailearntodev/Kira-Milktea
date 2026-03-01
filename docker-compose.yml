@@ -1,7 +1,18 @@
 services:
   telegram-bot:
     build: .
-    container_name: casso_bot
+    container_name: kira_milktea_bot
     restart: unless-stopped
     env_file:
       - .env
+    depends_on:
+      - redis_db
+    environment:
+      - REDIS_URL=redis://redis_db:6379
+
+  redis_db:
+    image: redis:alpine
+    container_name: kira_redis
+    restart: unless-stopped
+    ports:
+      - "6379:6379"
