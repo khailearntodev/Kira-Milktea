@@ -49,13 +49,15 @@ menuService.loadMenu()
 bot.launch().then(() => {
   console.log('?? Bot is running in ' + config.nodeEnv + ' mode!');
   console.log('?? Operating Hours: ' + config.openHour + ' - ' + config.closeHour);
+}).catch(err => {
+    console.error('Failed to launch bot:', err);
 });
 
 // === GRACEFUL SHUTDOWN ===
 process.once('SIGINT', () => bot.stop('SIGINT'));
 process.once('SIGTERM', () => bot.stop('SIGTERM'));
 
-if (config.nodeEnv === 'production') {
+if (process.env.PORT || config.nodeEnv === 'production') {
   const PORT = process.env.PORT || 3000;
   http.createServer((req, res) => {
     res.writeHead(200, { 'Content-Type': 'text/plain' });
@@ -64,4 +66,6 @@ if (config.nodeEnv === 'production') {
   }).listen(PORT, () => {
     console.log(`Server is listening on port ${PORT}`);
   });
+} else {
+  console.log('Running locally without HTTP server (set PORT env var to enable)');
 }
