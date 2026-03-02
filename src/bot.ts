@@ -41,17 +41,22 @@ bot.action(/^CATEGORY_.+$/, actionHandler.handleCategorySelection);
 
 bot.on('text', messageHandler.handleMessage);
 
-// === STARTUP ===
-menuService.loadMenu()
-  .then(() => console.log('? Menu loaded successfully'))
-  .catch(err => console.error('? Failed to load menu on startup:', err));
 
-bot.launch().then(() => {
-  console.log('?? Bot is running in ' + config.nodeEnv + ' mode!');
-  console.log('?? Operating Hours: ' + config.openHour + ' - ' + config.closeHour);
-}).catch(err => {
-    console.error('Failed to launch bot:', err);
-});
+// === STARTUP ===
+(async () => {
+  try {
+    await menuService.loadMenu();
+    console.log('? Menu loaded successfully');
+
+    // Launch bot
+    await bot.launch();
+    console.log('?? Bot is running in ' + config.nodeEnv + ' mode!');
+    console.log('?? Operating Hours: ' + config.openHour + ' - ' + config.closeHour);
+
+  } catch (error) {
+    console.error('CRITICAL ERROR: Failed to launch bot:', error);
+  }
+})();
 
 // === GRACEFUL SHUTDOWN ===
 process.once('SIGINT', () => bot.stop('SIGINT'));
