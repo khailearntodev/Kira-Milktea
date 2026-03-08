@@ -253,6 +253,30 @@ export const handleConfirmOrder = async (ctx: Context) => {
         return;
     }
 
+    const currentMenu = await menuService.loadMenu();
+    const unavailableItems: string[] = [];
+
+    for (const item of session.cart) {
+      const product = currentMenu.find(p => p.item_id === item.product.item_id);
+      if (!product || !product.available) {
+        if (!unavailableItems.includes(item.product.name)) {
+          unavailableItems.push(item.product.name);
+        }
+      }
+    }
+
+    if (unavailableItems.length > 0) {
+      await ctx.answerCbQuery('❌ Có món vừa hết hàng!', { show_alert: true });
+      await ctx.reply(
+        '⚠️ *Rất tiếc, các món sau vừa hết hàng:*\n\n' + 
+        unavailableItems.map(name => '• ' + name).join('\n') + 
+        '\n\n👉 Vui lòng xóa món hết hàng để tiếp tục.',
+        { parse_mode: 'Markdown' }
+      );
+      await handleViewCart(ctx);
+      return;
+    }
+
     // 1. Notify Owner
     const customerName = (ctx.from.first_name + ' ' + (ctx.from.last_name || '')).trim();
     const orderMessage = orderService.formatOrderToOwner(customerName, ctx.from.username, session);
